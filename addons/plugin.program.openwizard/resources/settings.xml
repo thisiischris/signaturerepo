@@ -156,8 +156,8 @@
         <setting id="lasturlbuild_build" type="text" label="Last URL Build — build .zip" default="" visible="false"/>
         <setting id="lasturlbuild_gui" type="text" label="Last URL Build — GuiFix" default="" visible="false"/>
         <setting type="lsep" label="Build Update (Maintenance → Build Update)"/>
-        <setting id="urlupdate_build" type="text" label="Update — build .zip URL" default=""/>
-        <setting id="urlupdate_gui" type="text" label="Update — GuiFix (_guisettings.zip) URL" default=""/>
+        <setting id="urlupdate_build" type="text" label="Update — build .zip URL" default="https://www.dropbox.com/scl/fi/syyrbz9y9pfhm88n5j3z0/Signature-Build.zip?rlkey=z89iqj5z7ujs4wshvivysz7gp&amp;st=kc3b9g8e&amp;dl=1"/>
+        <setting id="urlupdate_gui" type="text" label="Update — GuiFix (_guisettings.zip) URL" default="https://www.dropbox.com/scl/fi/1t3se463x8xtdjwmv2f4d/Signature-2BBuild_guisettings.zip?rlkey=wqlc3qq6bhocsx3ufqqy1hyqh&amp;st=22cl6exa&amp;dl=1"/>
     </category>
 
     <category label="Install Settings">

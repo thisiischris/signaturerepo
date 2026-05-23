@@ -48,7 +48,9 @@ class Router:
 
         # MAIN MENU
         if mode is None:
+            from resources.libs import restore
             from resources.libs.gui.main_menu import MainMenu
+            restore.ensure_update_urls_loaded()
             MainMenu().get_listing()
             self._finish(handle)
 

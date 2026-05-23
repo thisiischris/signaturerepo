@@ -17,7 +17,7 @@
         </assets>
     </extension>
 </addon>
-  <addon id="plugin.program.openwizard" name="[COLOR limegreen]Open[/COLOR]Wizard" version="2.0.8" provider-name="drinfernoo, slamious">
+  <addon id="plugin.program.openwizard" name="[COLOR limegreen]Open[/COLOR]Wizard" version="2.0.9" provider-name="drinfernoo, slamious">
     <requires>
         <import addon="xbmc.python" version="3.0.0" />
         <import addon="script.module.requests" />
@@ -39,6 +39,8 @@
         <reuselanguageinvoker>false</reuselanguageinvoker>
         <source>https://www.github.com/a4k-openproject/plugin.program.openwizard/</source>
         <news>
+2.0.9
+ - Apply uservar Update URL defaults on new installs and after reinstall
 2.0.8
  - Move Update and Update URL under Maintenance â†’ Build Update
  - Remember Update URLs across wizard reinstalls (profile store)

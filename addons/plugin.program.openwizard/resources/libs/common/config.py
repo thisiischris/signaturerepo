@@ -26,6 +26,13 @@ import os
 import uservar
 
 
+def _clean_default_url(value):
+    value = str(value or '').strip()
+    if not value or value == 'http://':
+        return ''
+    return value
+
+
 class Config:
     def __init__(self):
         self.init_meta()
@@ -56,6 +63,10 @@ class Config:
         self.YOUTUBEFILE = uservar.YOUTUBEFILE
         self.ADDONFILE = uservar.ADDONFILE
         self.ADVANCEDFILE = uservar.ADVANCEDFILE
+        self.DEFAULT_UPDATE_BUILD_URL = _clean_default_url(
+            getattr(uservar, 'DEFAULT_UPDATE_BUILD_URL', ''))
+        self.DEFAULT_UPDATE_GUI_URL = _clean_default_url(
+            getattr(uservar, 'DEFAULT_UPDATE_GUI_URL', ''))
 
         # Themeing Menu Items
         self.ICONBUILDS = uservar.ICONBUILDS if not uservar.ICONBUILDS.endswith('://') else self.ADDON_ICON

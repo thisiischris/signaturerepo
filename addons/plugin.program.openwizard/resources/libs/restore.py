@@ -85,13 +85,7 @@ def _write_update_urls_file(build_url, gui_url):
 
 
 def _uservar_default_update_urls():
-    try:
-        import uservar
-        build = getattr(uservar, 'DEFAULT_UPDATE_BUILD_URL', '') or ''
-        gui = getattr(uservar, 'DEFAULT_UPDATE_GUI_URL', '') or ''
-        return str(build).strip(), str(gui).strip()
-    except Exception:
-        return '', ''
+    return CONFIG.DEFAULT_UPDATE_BUILD_URL, CONFIG.DEFAULT_UPDATE_GUI_URL
 
 
 def _apply_update_url_settings(build_url, gui_url):
@@ -104,26 +98,26 @@ def ensure_update_urls_loaded():
     """Restore saved Update URLs after wizard reinstall or empty settings."""
     bu = _stored_update_url(UPDATE_URL_BUILD_KEY)
     gu = _stored_update_url(UPDATE_URL_GUI_KEY)
-    if bu and gu:
-        return bu, gu
 
     file_bu, file_gu = _read_update_urls_file()
-    if file_bu or file_gu:
-        if not bu and file_bu:
-            CONFIG.set_setting(UPDATE_URL_BUILD_KEY, file_bu)
-            bu = file_bu
-        if not gu and file_gu:
-            CONFIG.set_setting(UPDATE_URL_GUI_KEY, file_gu)
-            gu = file_gu
-        if bu or gu:
-            logging.log('[Update URLs] Restored from profile store')
-            return bu, gu
+    if not bu and file_bu:
+        bu = file_bu
+        CONFIG.set_setting(UPDATE_URL_BUILD_KEY, bu)
+    if not gu and file_gu:
+        gu = file_gu
+        CONFIG.set_setting(UPDATE_URL_GUI_KEY, gu)
+    if (file_bu or file_gu) and (bu or gu):
+        logging.log('[Update URLs] Restored from profile store')
 
     default_bu, default_gu = _uservar_default_update_urls()
-    if default_bu or default_gu:
-        _apply_update_url_settings(default_bu, default_gu)
+    if not bu and default_bu:
+        bu = default_bu
+        CONFIG.set_setting(UPDATE_URL_BUILD_KEY, bu)
+    if not gu and default_gu:
+        gu = default_gu
+        CONFIG.set_setting(UPDATE_URL_GUI_KEY, gu)
+    if (default_bu or default_gu) and (bu or gu):
         logging.log('[Update URLs] Applied defaults from uservar.py')
-        bu, gu = default_bu, default_gu
 
     if bu or gu:
         _write_update_urls_file(bu, gu)
