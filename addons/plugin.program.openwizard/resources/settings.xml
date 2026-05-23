@@ -155,7 +155,7 @@
 
         <setting id="lasturlbuild_build" type="text" label="Last URL Build — build .zip" default="" visible="false"/>
         <setting id="lasturlbuild_gui" type="text" label="Last URL Build — GuiFix" default="" visible="false"/>
-        <setting type="lsep" label="One-click Update (main menu → Update)"/>
+        <setting type="lsep" label="Build Update (Maintenance → Build Update)"/>
         <setting id="urlupdate_build" type="text" label="Update — build .zip URL" default=""/>
         <setting id="urlupdate_gui" type="text" label="Update — GuiFix (_guisettings.zip) URL" default=""/>
     </category>

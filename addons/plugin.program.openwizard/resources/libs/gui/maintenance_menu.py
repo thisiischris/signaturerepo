@@ -35,6 +35,7 @@ class MaintenanceMenu:
         directory.add_dir('[B]Logging Tools[/B]', {'mode': 'maint', 'name': 'logging'}, icon=CONFIG.ICONMAINT, themeit=CONFIG.THEME1)
         directory.add_dir('[B]Misc Maintenance[/B]', {'mode': 'maint', 'name': 'misc'}, icon=CONFIG.ICONMAINT, themeit=CONFIG.THEME1)
         directory.add_dir('[B]Back up/Restore[/B]', {'mode': 'maint', 'name': 'backup'}, icon=CONFIG.ICONMAINT, themeit=CONFIG.THEME1)
+        directory.add_dir('[B]Build Update[/B]', {'mode': 'maint', 'name': 'update'}, icon=CONFIG.ICONMAINT, themeit=CONFIG.THEME1)
         directory.add_dir('[B]System Tweaks/Fixes[/B]', {'mode': 'maint', 'name': 'tweaks'}, icon=CONFIG.ICONMAINT, themeit=CONFIG.THEME1)
 
     def clean_menu(self):
@@ -221,6 +222,22 @@ class MaintenanceMenu:
         directory.add_file('[Restore]: URL Theme', {'mode': 'restore', 'action': 'theme', 'name': 'url'}, icon=CONFIG.ICONMAINT, themeit=CONFIG.THEME3)
         directory.add_file('[Restore]: URL Addon Pack', {'mode': 'restore', 'action': 'addonpack', 'name': 'url'}, icon=CONFIG.ICONMAINT, themeit=CONFIG.THEME3)
         directory.add_file('[Restore]: URL Addon_data', {'mode': 'restore', 'action': 'addondata', 'name': 'url'}, icon=CONFIG.ICONMAINT, themeit=CONFIG.THEME3)
+
+    def update_menu(self):
+        from resources.libs import restore
+
+        restore.ensure_update_urls_loaded()
+        bu, gu = restore.read_update_urls()
+        if bu and gu:
+            status = '[COLOR springgreen]URLs saved[/COLOR]'
+        elif bu or gu:
+            status = '[COLOR orange]Partially set[/COLOR]'
+        else:
+            status = '[COLOR red]Not set[/COLOR]'
+
+        directory.add_file('Update URL status: {0}'.format(status), {'mode': 'settings', 'name': 'Maintenance'}, icon=CONFIG.ICONMAINT, themeit=CONFIG.THEME3)
+        directory.add_file('Update', {'mode': 'buildupdate'}, icon=CONFIG.ICONMAINT, themeit=CONFIG.THEME3)
+        directory.add_file('Update URL', {'mode': 'configureupdateurls'}, icon=CONFIG.ICONMAINT, themeit=CONFIG.THEME3)
         directory.add_file('Clear saved Update URLs', {'mode': 'clearupdateurls'}, icon=CONFIG.ICONMAINT, themeit=CONFIG.THEME3)
 
     def tweaks_menu(self):

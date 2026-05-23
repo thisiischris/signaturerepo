@@ -100,6 +100,8 @@ class Router:
                 MaintenanceMenu().misc_menu()
             elif name == 'backup':
                 MaintenanceMenu().backup_menu()
+            elif name == 'update':
+                MaintenanceMenu().update_menu()
             elif name == 'tweaks':
                 MaintenanceMenu().tweaks_menu()
             elif name == 'logging':
@@ -117,8 +119,8 @@ class Router:
             from resources.libs import restore
             restore.run_stored_build_update()
         elif mode == 'clearupdateurls':
-            CONFIG.set_setting('urlupdate_build', '')
-            CONFIG.set_setting('urlupdate_gui', '')
+            from resources.libs import restore
+            restore.clear_update_urls()
             logging.log_notify(CONFIG.ADDONTITLE,
                                '[COLOR {0}]Update URLs cleared[/COLOR]'.format(CONFIG.COLOR2))
             xbmc.executebuiltin('Container.Refresh()')

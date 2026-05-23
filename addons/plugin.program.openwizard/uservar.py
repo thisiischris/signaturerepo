@@ -30,6 +30,9 @@ YOUTUBEFILE = 'http://'
 ADDONFILE = 'http://'
 # Text File for advanced settings.  Leave as 'http://' to ignore
 ADVANCEDFILE = 'http://'
+# Optional defaults for Maintenance → Build Update → Update URL (used when nothing is saved yet)
+DEFAULT_UPDATE_BUILD_URL = ''
+DEFAULT_UPDATE_GUI_URL = ''
 #########################################################
 
 #########################################################

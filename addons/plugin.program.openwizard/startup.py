@@ -332,6 +332,9 @@ tools.ensure_folders()
 # Ensure that the wizard's name matches its folder
 check.check_paths()
 
+from resources.libs import restore
+restore.ensure_update_urls_loaded()
+
 
 # FIRST RUN SETTINGS
 if CONFIG.get_setting('first_install') == 'true':

@@ -21,6 +21,7 @@ import xbmc
 import xbmcgui
 import xbmcvfs
 
+import json
 import os
 import re
 import time
@@ -45,6 +46,107 @@ LAST_URLBUILD_BUILD_KEY = 'lasturlbuild_build'
 LAST_URLBUILD_GUI_KEY = 'lasturlbuild_gui'
 UPDATE_URL_BUILD_KEY = 'urlupdate_build'
 UPDATE_URL_GUI_KEY = 'urlupdate_gui'
+UPDATE_URLS_FILENAME = 'update_urls.json'
+
+
+def _update_urls_store_path():
+    base = xbmcvfs.translatePath('special://profile/')
+    folder = os.path.join(base, 'OpenWizard')
+    if not xbmcvfs.exists(folder):
+        try:
+            xbmcvfs.mkdirs(folder)
+        except Exception:
+            pass
+    return os.path.join(folder, UPDATE_URLS_FILENAME)
+
+
+def _read_update_urls_file():
+    path = _update_urls_store_path()
+    if not xbmcvfs.exists(path):
+        return '', ''
+    try:
+        with open(path, 'r', encoding='utf-8') as handle:
+            data = json.load(handle)
+        return str(data.get('build', '') or '').strip(), str(data.get('gui', '') or '').strip()
+    except Exception:
+        logging.log('[Update URLs] Could not read {0}'.format(path), level=xbmc.LOGWARNING)
+        return '', ''
+
+
+def _write_update_urls_file(build_url, gui_url):
+    path = _update_urls_store_path()
+    payload = {'build': build_url or '', 'gui': gui_url or ''}
+    try:
+        with open(path, 'w', encoding='utf-8') as handle:
+            json.dump(payload, handle, indent=2)
+        logging.log('[Update URLs] Saved to {0}'.format(path))
+    except Exception as err:
+        logging.log('[Update URLs] Could not write {0}: {1}'.format(path, err), level=xbmc.LOGERROR)
+
+
+def _uservar_default_update_urls():
+    try:
+        import uservar
+        build = getattr(uservar, 'DEFAULT_UPDATE_BUILD_URL', '') or ''
+        gui = getattr(uservar, 'DEFAULT_UPDATE_GUI_URL', '') or ''
+        return str(build).strip(), str(gui).strip()
+    except Exception:
+        return '', ''
+
+
+def _apply_update_url_settings(build_url, gui_url):
+    CONFIG.set_setting(UPDATE_URL_BUILD_KEY, build_url or '')
+    CONFIG.set_setting(UPDATE_URL_GUI_KEY, gui_url or '')
+    _write_update_urls_file(build_url, gui_url)
+
+
+def ensure_update_urls_loaded():
+    """Restore saved Update URLs after wizard reinstall or empty settings."""
+    bu = _stored_update_url(UPDATE_URL_BUILD_KEY)
+    gu = _stored_update_url(UPDATE_URL_GUI_KEY)
+    if bu and gu:
+        return bu, gu
+
+    file_bu, file_gu = _read_update_urls_file()
+    if file_bu or file_gu:
+        if not bu and file_bu:
+            CONFIG.set_setting(UPDATE_URL_BUILD_KEY, file_bu)
+            bu = file_bu
+        if not gu and file_gu:
+            CONFIG.set_setting(UPDATE_URL_GUI_KEY, file_gu)
+            gu = file_gu
+        if bu or gu:
+            logging.log('[Update URLs] Restored from profile store')
+            return bu, gu
+
+    default_bu, default_gu = _uservar_default_update_urls()
+    if default_bu or default_gu:
+        _apply_update_url_settings(default_bu, default_gu)
+        logging.log('[Update URLs] Applied defaults from uservar.py')
+        bu, gu = default_bu, default_gu
+
+    if bu or gu:
+        _write_update_urls_file(bu, gu)
+
+    return bu, gu
+
+
+def read_update_urls():
+    ensure_update_urls_loaded()
+    return _read_hardcoded_update_urls()
+
+
+def clear_update_urls():
+    CONFIG.set_setting(UPDATE_URL_BUILD_KEY, '')
+    CONFIG.set_setting(UPDATE_URL_GUI_KEY, '')
+    CONFIG.set_setting(LAST_URLBUILD_BUILD_KEY, '')
+    CONFIG.set_setting(LAST_URLBUILD_GUI_KEY, '')
+    path = _update_urls_store_path()
+    if xbmcvfs.exists(path):
+        try:
+            xbmcvfs.delete(path)
+        except Exception:
+            pass
 
 
 def _stored_update_url(key):
@@ -530,17 +632,18 @@ def restore(action, external=False, from_url=False):
 
 
 def configure_update_urls():
-    """Main menu → Update URL: save fixed build + GuiFix links for one-click Update."""
+    """Maintenance → Build Update → Update URL: save build + GuiFix links for one-click Update."""
     cls = Restore(external=True)
-    bu, gu = _read_hardcoded_update_urls()
+    bu, gu = read_update_urls()
     pairs = cls._prompt_url_build_pair(
         default_build=bu,
         default_gui=gu,
         require_gui_zip=True)
     if not pairs:
         return
-    CONFIG.set_setting(UPDATE_URL_BUILD_KEY, pairs[0][0])
-    CONFIG.set_setting(UPDATE_URL_GUI_KEY, pairs[1][0] if len(pairs) > 1 else '')
+    gui_url = pairs[1][0] if len(pairs) > 1 else ''
+    _apply_update_url_settings(pairs[0][0], gui_url)
+    _save_last_urlbuild_pair(pairs)
     logging.log_notify(
         CONFIG.ADDONTITLE,
         '[COLOR {0}]Update URLs saved[/COLOR]'.format(CONFIG.COLOR2),
@@ -548,16 +651,16 @@ def configure_update_urls():
 
 
 def run_stored_build_update():
-    """Main menu Update → Run: download/extract using hardcoded urlupdate_* URLs (no prompts)."""
+    """Maintenance → Build Update → Update: download/extract using saved urlupdate_* URLs."""
     cls = Restore(external=True)
-    bu, gu = _read_hardcoded_update_urls()
+    bu, gu = read_update_urls()
 
     if not bu or not gu:
         cls.dialog.ok(
             CONFIG.ADDONTITLE,
             '[COLOR {0}]Update URLs are not set yet.[/COLOR]\n'
-            'Use [COLOR {1}]Update URL[/COLOR] on the main menu to enter your build .zip and GuiFix links.\n'
-            'Then [COLOR {1}]Update[/COLOR] always uses those links.'.format(
+            'Use [COLOR {1}]Maintenance → Build Update → Update URL[/COLOR] to enter your build .zip and GuiFix links.\n'
+            'Then [COLOR {1}]Update[/COLOR] always uses those links (saved across reinstalls).'.format(
                 CONFIG.COLOR2, CONFIG.COLOR1))
         return
 
