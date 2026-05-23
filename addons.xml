@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addons>
-  <addon id="repository.signaturerepo" name="Signature Repository" version="1.0.1" provider-name="thisiischris">
+  <addon id="repository.signaturerepo" name="Signature Repository" version="1.0.2" provider-name="thisiischris">
     <extension point="xbmc.addon.repository" name="Signature Repository">
         <dir minversion="19.0.0" maxversion="21.9.9">
             <info compressed="false">https://raw.githubusercontent.com/thisiischris/signaturerepo/main/addons.xml</info>
@@ -12,6 +12,7 @@
         <summary lang="en">Signature custom Kodi add-ons</summary>
         <description lang="en">Repository for Signature Kodi add-ons.</description>
         <platform>all</platform>
+        <icon>icon.png</icon>
     </extension>
 </addon>
   <addon id="plugin.program.openwizard" name="[COLOR limegreen]Open[/COLOR]Wizard" version="2.0.8" provider-name="drinfernoo, slamious">
