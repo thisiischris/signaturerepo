@@ -27,17 +27,14 @@ signaturerepo/
 1. Enable **Unknown sources** in Kodi settings.
 2. **Add-ons → Install from zip file** (do not rely on File manager browsing — GitHub does not list folders by default).
 3. Choose **Enter link** and paste:
-   `https://thisiischris.github.io/signaturerepo/zips/repository.signaturerepo/repository.signaturerepo-1.0.0.zip`
+   `https://raw.githubusercontent.com/thisiischris/signaturerepo/main/zips/repository.signaturerepo/repository.signaturerepo-1.0.1.zip`
 4. Install add-ons from **Install from repository → Signature Repository**.
 
 If you add a file source, use `https://thisiischris.github.io/signaturerepo/zips/` (not the repo root). The root only shows this readme page.
 
 ## GitHub Pages
 
-Enable Pages on the `main` branch, serving from the repository root. Kodi will read:
-
-- `https://thisiischris.github.io/signaturerepo/addons.xml`
-- `https://thisiischris.github.io/signaturerepo/zips/`
+Kodi reads add-on metadata from `raw.githubusercontent.com` (reliable). GitHub Pages under `thisiischris.github.io/signaturerepo/zips/` is optional for browsing zips in File manager.
 
 ## Adding a new add-on
 
