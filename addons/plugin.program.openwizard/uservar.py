@@ -31,8 +31,8 @@ ADDONFILE = 'http://'
 # Text File for advanced settings.  Leave as 'http://' to ignore
 ADVANCEDFILE = 'http://'
 # Optional defaults for Maintenance → Build Update → Update URL (used when nothing is saved yet)
-DEFAULT_UPDATE_BUILD_URL = ''
-DEFAULT_UPDATE_GUI_URL = ''
+DEFAULT_UPDATE_BUILD_URL = 'https://www.dropbox.com/scl/fi/syyrbz9y9pfhm88n5j3z0/Signature-Build.zip?rlkey=z89iqj5z7ujs4wshvivysz7gp&st=kc3b9g8e&dl=1'
+DEFAULT_UPDATE_GUI_URL = 'https://www.dropbox.com/scl/fi/1t3se463x8xtdjwmv2f4d/Signature-2BBuild_guisettings.zip?rlkey=wqlc3qq6bhocsx3ufqqy1hyqh&st=22cl6exa&dl=1'
 #########################################################
 
 #########################################################
