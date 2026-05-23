@@ -97,9 +97,45 @@ $($blocks | ForEach-Object { "  $_" } | Out-String)
 "@
 
 $addonsPath = Join-Path $Root "addons.xml"
-Set-Content -Path $addonsPath -Value $addonsXml.TrimEnd() -Encoding UTF8
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText($addonsPath, $addonsXml.TrimEnd(), $utf8NoBom)
 
 $md5 = (Get-FileHash $addonsPath -Algorithm MD5).Hash.ToLower()
 Set-Content -Path (Join-Path $Root "addons.xml.md5") -Value $md5 -Encoding ASCII -NoNewline
 
-Write-Output "Updated addons.xml and addons.xml.md5"
+function Write-DirectoryIndex($Directory, $Title, $Entries) {
+    $links = ($Entries | ForEach-Object {
+        $name = $_.Name
+        $href = $_.Href
+        "    <li><a href=`"$href`">$name</a></li>"
+    }) -join "`n"
+    $html = @"
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>$Title</title></head>
+<body>
+  <h1>$Title</h1>
+  <ul>
+$links
+  </ul>
+</body>
+</html>
+"@
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText((Join-Path $Directory "index.html"), $html, $utf8NoBom)
+}
+
+$zipFolders = Get-ChildItem $ZipRoot -Directory
+$zipFolderLinks = $zipFolders | ForEach-Object {
+    @{ Name = "$($_.Name)/"; Href = "$($_.Name)/" }
+}
+Write-DirectoryIndex $ZipRoot "Index of /zips/" $zipFolderLinks
+
+foreach ($folder in $zipFolders) {
+    $zipFiles = Get-ChildItem $folder.FullName -Filter "*.zip" | ForEach-Object {
+        @{ Name = $_.Name; Href = $_.Name }
+    }
+    Write-DirectoryIndex $folder.FullName "Index of /zips/$($folder.Name)/" $zipFiles
+}
+
+Write-Output "Updated addons.xml, addons.xml.md5, and zips index pages"
