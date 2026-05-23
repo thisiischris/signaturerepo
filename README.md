@@ -1,45 +1,47 @@
-# plugin.program.openwizard
-OpenWizard
+# Signature Kodi Repository
 
-# THIS PROJECT IS NO LONGER IN DEVELOPMENT.
+Source repository for custom Kodi add-ons.
 
-OpenWizard was created to help the Kodi community out and help get rid of the broken personal wizards that are floating around. As this is a work in progress, a repository is highly recommended, but if you prefer not to, there is a built-in auto-updater.
+## Structure
 
-For more information on how to edit/customize this wizard for your own usage, please read [the wiki](https://github.com/drinfernoo/plugin.program.openwizard/wiki).
+```
+signaturerepo/
+├── addons/                          # Add-on source code
+│   └── plugin.program.openwizard/
+├── repository.signaturerepo/        # Repo add-on (install this in Kodi first)
+├── zips/                            # Packaged add-ons for distribution
+├── addons.xml                       # Generated add-on index for Kodi
+├── addons.xml.md5                   # Checksum for addons.xml
+└── tools/
+    └── repo_generator.ps1            # Builds zips + addons.xml
+```
 
-Currently, this version of the wizard supports:
+## Add-ons
 
-|  Add-on                            | Cache Clearing | Trakt | All-Debrid | Real-Debrid | Premiumize | Trakt API | TMDb | TVDB | OMDb | IMDb | Fanart.tv | Location | Username/Password/Login |
-|------------------------------------|:--------------:|:-----:|:----------:|:-----------:|:----------:|:---------:|:----:|:----:|:----:|:----:|:---------:|:--------:|:-----------------------:|
-| AutoCompletion                     | [x]            |       |            |             |            |           |      |      |      |      |           |          |                         |
-| Exodus Redux                       | [x]            | [x]   |            |             |            |           | [x]  |      |      | [x]  | [x]       |          |                         |
-| ExtendedInfo Script                | [x]            |       |            |             |            |           | [x]  |      |      |      |           |          |                         |
-| Fen                                |                | [x]   | [x]        | [x]         | [x]        |           | [x]  |      |      |      |           |          | [x] - EasyNews/Furk     |
-| Gaia                               | [x]            | [x]   | [x]        | [x]         | [x]        |           | [x]  |      |      | [x]  | [x]       |          |                         |
-| IAGL                               |                |       |            |             |            |           |      |      |      |      |           |          | [x] - Archive.org       |
-| Netflix                            |                |       |            |             |            |           |      |      |      |      |           |          | [x] - Netflix           |
-| NuMb3r5                            | [x]            | [x]   |            |             |            |           | [x]  |      |      | [x]  | [x]       |          |                         |
-| OpenInfo                           | [x]            |       |            |             |            |           | [x]  |      |      |      |           |          |                         |
-| OpenMeta                           | [x]            | [x]   |            |             |            | [x]       | [x]  | [x]  |      |      |           |          |                         |
-| OpenSubtitles.org                  |                |       |            |             |            |           |      |      |      |      |           |          | [x] - OpenSubtitles.org |
-| OpenSubtitles.org by OpenSubtitles |                |       |            |             |            |           |      |      |      |      |           |          | [x] - OpenSubtitles.org |
-| Orion                              |                |       |            |             |            |           |      |      |      |      |           |          | [x] - Orion             |
-| Premiumizer                        |                | [x]   |            |             | [x]        |           | [x]  | [x]  |      | [x]  | [x]       |          |                         |
-| Realizer                           |                | [x]   |            | [x]         |            |           | [x]  | [x]  |      | [x]  | [x]       |          |                         |
-| metahandler                        |                |       |            |             |            |           | [x]  | [x]  | [x]  |      |           |          |                         |
-| ResolveURL                         | [x]            |       | [x]        | [x]         | [x]        |           |      |      |      |      |           |          |                         |
-| script.module.metadatautils        | [x]            |       |            |             |            |           | [x]  |      | [x]  |      | [x]       |          |                         |
-| Scrubs v2                          | [x]            | [x]   |            |             |            |           | [x]  |      |      | [x]  | [x]       |          |                         |
-| Seren                              | [x]            | [x]   | [x]        | [x]         | [x]        | [x]       | [x]  | [x]  |      |      |           |          |                         |
-| Shadow                             |                | [x]   | [x]        | [x]         | [x]        |           |      |      |      |      |           |          |                         |
-| simplecache                        | [x]            |       |            |             |            |           |      |      |      |      |           |          |                         |
-| THE CREW                           | [x]            | [x]   |            |             |            |           | [x]  |      |      | [x]  | [x]       |          |                         |
-| TheMovieDb Helper                  |                | [x]   |            |             |            |           | [x]  |      | [x]  |      |           |          |                         |
-| Trakt                              |                | [x]   |            |             |            |           |      |      |      |      |           |          |                         |
-| URLResolver                        | [x]            |       | [x]        | [x]         | [x]        |           |      |      |      |      |           |          |                         |
-| WonderfulSubs                      |                |       |            |             |            |           |      |      |      |      |           |          | [x] - WonderfulSubs     |
-| Venom                              | [x]            | [x]   |            |             |            |           | [x]  |      |      | [x]  | [x]       |          |                         |
-| Yahoo! Weather                     |                |       |            |             |            |           |      |      |      |      |           | [x]      |                         |
-| YouTube                            |                |       |            |             |            |           |      |      |      |      |           |          | [x] - YouTube API       |
+| Add-on | Folder | Description |
+|--------|--------|-------------|
+| OpenWizard | `addons/plugin.program.openwizard/` | Build wizard and maintenance tools |
 
-If you don't see these in your menus, don't be alarmed... it's just because you dont have them installed. They are supported, however ;)
+## Install in Kodi
+
+1. Enable **Unknown sources** in Kodi settings.
+2. Install the repository add-on zip from:
+   `https://thisiischris.github.io/signaturerepo/zips/repository.signaturerepo/repository.signaturerepo-1.0.0.zip`
+3. Install add-ons from **Add-on browser → Install from repository → Signature Repository**.
+
+## GitHub Pages
+
+Enable Pages on the `main` branch, serving from the repository root. Kodi will read:
+
+- `https://thisiischris.github.io/signaturerepo/addons.xml`
+- `https://thisiischris.github.io/signaturerepo/zips/`
+
+## Adding a new add-on
+
+1. Create `addons/<addon.id>/` with a valid `addon.xml`.
+2. Run `powershell -ExecutionPolicy Bypass -File tools/repo_generator.ps1` from the repo root.
+3. Commit the updated `zips/`, `addons.xml`, and `addons.xml.md5`.
+
+## Development
+
+Work on add-on source under `addons/<addon.id>/`. Run the repo generator before pushing releases.
