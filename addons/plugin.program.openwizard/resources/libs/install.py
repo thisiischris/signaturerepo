@@ -129,8 +129,11 @@ def wipe():
                 try:
                     if name == latestAddonDB:
                         logging.log("Ignoring {0} on Kodi {1}".format(name, tools.kodi_version()))
+                    elif CONFIG.KEEPWATCHED == 'true' and name.lower().startswith('myvideos'):
+                        logging.log("Keep MyVideos DB (watched history): {0}".format(os.path.join(root, name)))
                     else:
                         os.remove(os.path.join(root, name))
+
                 except Exception as e:
                     if not name.startswith('Textures13'):
                         logging.log('Failed to delete, Purging DB')
