@@ -21,6 +21,8 @@
         <reuselanguageinvoker>false</reuselanguageinvoker>
         <source>https://www.github.com/a4k-openproject/plugin.program.openwizard/</source>
         <news>
+2.0.11
+ - Preserve watched status and playcount history across build installs
 2.0.10
  - Stop restoring build_binaries.txt from build/GuiFix zips
  - Clear binary install queue when add-ons are already installed
