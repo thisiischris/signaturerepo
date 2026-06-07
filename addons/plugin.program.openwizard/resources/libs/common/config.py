@@ -139,7 +139,8 @@ class Config:
                               'saltshd.lite.db-wal', 'queue.db',
                               'commoncache.db', 'access.log', 'trakt.db',
                               'video_cache.db', '.gitignore', '.DS_Store',
-                              'Textures13.db', 'Thumbs.db']
+                              'Textures13.db', 'Thumbs.db',
+                              'build_binaries.txt']
         self.XMLS = ['advancedsettings.xml', 'sources.xml', 'favourites.xml',
                      'profiles.xml', 'playercorefactory.xml', 'guisettings.xml']
         self.MODURL = 'http://mirrors.kodi.tv/addons/matrix/'

@@ -211,49 +211,97 @@ def _is_valid_zip_file(path):
         return False
 
 
+def _binary_queue_path():
+    return os.path.join(CONFIG.USERDATA, 'build_binaries.txt')
+
+
+def _read_binary_install_queue():
+    binarytxt = _binary_queue_path()
+    if not os.path.exists(binarytxt):
+        return []
+    raw = tools.read_from_file(binarytxt).strip()
+    if not raw:
+        return []
+    return [addon_id.strip() for addon_id in raw.split(',') if addon_id.strip()]
+
+
+def _remove_binary_install_queue():
+    binarytxt = _binary_queue_path()
+    if not os.path.exists(binarytxt):
+        return
+    try:
+        os.remove(binarytxt)
+    except Exception:
+        try:
+            xbmcvfs.delete(binarytxt)
+        except Exception:
+            pass
+
+
+def _addon_is_installed(addon_id):
+    return xbmc.getCondVisibility('System.HasAddon({0})'.format(addon_id))
+
+
+def sync_binary_install_queue():
+    """Clear stale queue after restore or when everything is already installed."""
+    pending = _read_binary_install_queue()
+    if not pending:
+        _remove_binary_install_queue()
+        return []
+
+    missing = [addon_id for addon_id in pending if not _addon_is_installed(addon_id)]
+    if not missing:
+        logging.log('[Binary Detection] Queue cleared — all listed add-ons already installed')
+        _remove_binary_install_queue()
+        return []
+
+    return missing
+
+
 def binaries():
-    dialog = xbmcgui.Dialog()
-
-    binarytxt = os.path.join(CONFIG.USERDATA, 'build_binaries.txt')
-
-    if os.path.exists(binarytxt):
-        binaryids = tools.read_from_file(binarytxt).split(',')
-
-        logging.log("[Binary Detection] Reinstalling Eligible Binary Addons")
-        dialog.ok(CONFIG.ADDONTITLE,
-                  '[COLOR {0}]The restored build contains platform-specific addons, which will now be '
-                  'automatically installed. A number of dialogs may pop up during this process. Cancelling them '
-                  'may cause the restored build to function incorrectly.[/COLOR]'.format(
-                      CONFIG.COLOR2))
-    else:
-        logging.log("[Binary Detection] No Eligible Binary Addons to Reinstall")
+    missing = sync_binary_install_queue()
+    if not missing:
+        logging.log("[Binary Detection] No pending binary add-ons to install")
         return True
+
+    dialog = xbmcgui.Dialog()
+    logging.log("[Binary Detection] Reinstalling {0} binary add-on(s)".format(len(missing)))
+    dialog.ok(CONFIG.ADDONTITLE,
+              '[COLOR {0}]The restored build lists platform-specific add-ons that still need to be '
+              'installed. Use the remote to confirm each install dialog. Cancelling may leave '
+              'streams or devices unsupported.[/COLOR]'.format(CONFIG.COLOR2))
 
     success = []
     fail = []
 
-    if len(binaryids) == 0:
-        logging.log('No addons selected for installation.')
-        return
-
     from resources.libs.gui import addon_menu
 
-    # finally, reinstall addons
-    for addonid in binaryids:
-        if addon_menu.install_from_kodi(addonid):
-            logging.log('{0} install succeeded.'.format(addonid))
-            success.append(addonid)
+    for addon_id in missing:
+        if _addon_is_installed(addon_id):
+            logging.log('{0} already installed.'.format(addon_id))
+            success.append(addon_id)
+            continue
+        if addon_menu.install_from_kodi(addon_id):
+            logging.log('{0} install succeeded.'.format(addon_id))
+            success.append(addon_id)
         else:
-            logging.log('{0} install failed.'.format(addonid))
-            fail.append(addonid)
+            logging.log('{0} install failed.'.format(addon_id))
+            fail.append(addon_id)
 
-    if not fail:
-        dialog.ok(CONFIG.ADDONTITLE, 'The selected addons were all installed successfully.')
-        os.remove(binarytxt)
+    still_missing = [addon_id for addon_id in missing if not _addon_is_installed(addon_id)]
+    if not still_missing:
+        _remove_binary_install_queue()
+        if not fail:
+            dialog.ok(CONFIG.ADDONTITLE, 'The selected add-ons were all installed successfully.')
         return True
-    else:
-        dialog.ok(CONFIG.ADDONTITLE, 'The following addons failed to install:\n{0}'.format(', '.join(fail)))
-        return False
+
+    if fail:
+        dialog.ok(
+            CONFIG.ADDONTITLE,
+            'The following add-ons could not be installed automatically:\n{0}\n\n'
+            'Install them from the Kodi Add-on repository, then delete '
+            'userdata/build_binaries.txt or run Update again.'.format(', '.join(fail)))
+    return False
 
 
 class Restore:
@@ -350,6 +398,8 @@ class Restore:
         CONFIG.set_setting('extract', percent)
         CONFIG.set_setting('errors', errors)
 
+        _remove_binary_install_queue()
+
         if self.external and _is_http_url(file):
             try:
                 os.remove(staging_zip)
@@ -431,6 +481,8 @@ class Restore:
         CONFIG.set_setting('installed', 'true')
         CONFIG.set_setting('extract', str(last_pct))
         CONFIG.set_setting('errors', str(total_errors))
+
+        _remove_binary_install_queue()
 
         db.force_check_updates(over=True)
 

@@ -120,6 +120,8 @@ def all_with_progress(_in, _out, dp, ignore, title):
             skip = True
         elif file[-1] in CONFIG.EXCLUDE_FILES:
             skip = True
+        elif file[-1] == 'build_binaries.txt':
+            skip = True
         elif file[-1].endswith('.csv'):
             skip = True
         elif not str(item.filename).find('plugin.program.super.favourites') == -1 and CONFIG.KEEPSUPER == 'true':

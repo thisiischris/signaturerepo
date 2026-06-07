@@ -386,13 +386,11 @@ else:
     logging.log("[Auto Install Repo] Not Enabled", level=xbmc.LOGINFO)
 
 # REINSTALL ELIGIBLE BINARIES
-binarytxt = os.path.join(CONFIG.USERDATA, 'build_binaries.txt')
-if os.path.exists(binarytxt):
-    logging.log("[Binary Detection] Reinstalling Eligible Binary Addons", level=xbmc.LOGINFO)
-    from resources.libs import restore
-    restore.restore('binaries')
+if restore.sync_binary_install_queue():
+    logging.log("[Binary Detection] Pending binary add-ons found", level=xbmc.LOGINFO)
+    restore.binaries()
 else:
-    logging.log("[Binary Detection] Eligible Binary Addons to Reinstall", level=xbmc.LOGINFO)
+    logging.log("[Binary Detection] No pending binary add-ons", level=xbmc.LOGINFO)
     
 # AUTO UPDATE WIZARD
 if CONFIG.AUTOUPDATE == 'Yes':

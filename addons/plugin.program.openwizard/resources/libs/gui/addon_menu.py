@@ -55,7 +55,7 @@ def install_from_kodi(plugin):
 
     clicked = False
     start = time.time()
-    timeout = 20
+    timeout = 60 if tools.platform() == 'android' else 20
     while not xbmc.getCondVisibility(installed_cond):
         if time.time() >= start + timeout:
             logging.log('Timed out installing', level=xbmc.LOGDEBUG)
