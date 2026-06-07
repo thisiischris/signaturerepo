@@ -270,6 +270,7 @@ class Config:
         self.KEEPTRAKT = self.get_setting('keeptrakt')
         self.KEEPDEBRID = self.get_setting('keepdebrid')
         self.KEEPLOGIN = self.get_setting('keeplogin')
+        self.KEEPWATCHED = self.get_setting('keepwatched')
 
         # Backup variables
         self.BACKUPLOCATION = xbmcvfs.translatePath(self.get_setting('path') if not self.get_setting('path') == '' else self.HOME)

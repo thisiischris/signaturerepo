@@ -181,6 +181,7 @@
         <setting id="keeprepos" type="bool" label="Keep Installed Repositories" default="false"/>
         <setting id="keepsuper" type="bool" label="Keep Super Favourites" default="false"/>
         <setting id="keepwhitelist" type="bool" label="Keep My Whitelist Addons" default="false"/>
+        <setting id="keepwatched" type="bool" label="Keep Watched / Playcount History" default="true"/>
     </category>
 
     <category label="View Settings">

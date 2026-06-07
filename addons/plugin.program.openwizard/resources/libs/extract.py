@@ -112,6 +112,8 @@ def all_with_progress(_in, _out, dp, ignore, title):
             skip = True
         elif item.filename == 'userdata/advancedsettings.xml' and CONFIG.KEEPADVANCED == 'true':
             skip = True
+        elif file[-1].lower().startswith('myvideos') and file[-1].lower().endswith('.db') and CONFIG.KEEPWATCHED == 'true':
+            skip = True
         elif file[0] == 'addons' and file[1] in excludes:
             skip = True
         elif file[0] == 'userdata' and file[1] == 'addon_data' and file[2] in excludes:
