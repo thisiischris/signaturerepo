@@ -2,8 +2,8 @@
 # Self-test for the secret-scan pre-push hook, gitleaks config and setup script.
 # Runs everything in a scratch dir (mktemp -d), prints PASS/FAIL per case and
 # exits non-zero on any failure. Test tokens are generated at runtime and never
-# printed. Cases 2-4 need gitleaks 8.30.1 (run `sh scripts/setup-githooks.sh`);
-# case 5 downloads the release archive once (network).
+# printed. Cases 2-4 need gitleaks 8.30.1 (run `sh scripts/setup-githooks.sh`).
+# No network: setup cases use a fake `curl` on PATH that serves a bogus archive.
 set -u
 
 GITLEAKS_VERSION=8.30.1
@@ -115,17 +115,57 @@ else
   else fail "4 clean commit (rc=$RC)"; show "$OUT"; fi
 fi
 
-# 5) setup with wrong expected hash: must fail, install nothing, leave no temp files
+# Fake curl: writes a bogus "archive" to the -o target (no network) and logs
+# the call. The pinned checksum can't match it, so setup must refuse to install.
+FAKECURL="$WORK/fakecurl"; mkdir -p "$FAKECURL"
+cat >"$FAKECURL/curl" <<'SH'
+#!/bin/sh
+out=""
+while [ $# -gt 0 ]; do
+  [ "$1" = "-o" ] && { out=$2; shift; }
+  shift
+done
+[ -n "$out" ] || exit 2
+printf 'not a real gitleaks archive\n' >"$out"
+echo called >>"$FAKECURL_LOG"
+SH
+chmod +x "$FAKECURL/curl"
+
+# Fake gitleaks reporting the pinned version (exits 0 for any subcommand).
+PINBIN="$WORK/pinbin"; mkdir -p "$PINBIN"
+printf '#!/bin/sh\necho %s\n' "$GITLEAKS_VERSION" >"$PINBIN/gitleaks"; chmod +x "$PINBIN/gitleaks"
+
+run_setup() { # <case> <HOME> <PATH> [VAR=val ...] -> RC, OUT, STMP, CURL_LOG
+  c=$1; h=$2; p=$3; shift 3
+  STMP="$WORK/tmp$c"; mkdir -p "$STMP" "$h"
+  OUT="$WORK/out-setup$c"; CURL_LOG="$WORK/curl$c.log"; : >"$CURL_LOG"
+  (cd "$R" && env HOME="$h" PATH="$p" TMPDIR="$STMP" FAKECURL_LOG="$CURL_LOG" "$@" \
+    sh scripts/setup-githooks.sh) >"$OUT" 2>&1
+  RC=$?
+}
+mismatch_ok() { # <install dir>: failed on checksum, nothing installed, temp cleaned
+  [ "$RC" -ne 0 ] && [ -s "$CURL_LOG" ] && [ ! -e "$1/gitleaks" ] &&
+    [ -z "$(ls -A "$1" 2>/dev/null)" ] && [ -z "$(ls -A "$STMP")" ] &&
+    grep -q "checksum mismatch" "$OUT"
+}
+
+# 5) bad download (pinned checksum can't be overridden): fail, install nothing
 new_repo
-INST="$WORK/install5"; STMP="$WORK/tmp5"; mkdir -p "$STMP"
-OUT="$WORK/out-setup5"
-(cd "$R" && PATH="$NOGL_PATH" TMPDIR="$STMP" GITLEAKS_INSTALL_DIR="$INST" \
-  GITLEAKS_EXPECTED_SHA256=0000000000000000000000000000000000000000000000000000000000000000 sh scripts/setup-githooks.sh) >"$OUT" 2>&1
-RC=$?
-if [ "$RC" -ne 0 ] && [ ! -e "$INST/gitleaks" ] && [ -z "$(ls -A "$STMP")" ] &&
-   grep -q "checksum mismatch" "$OUT"; then
+INST="$WORK/install5"
+run_setup 5 "$WORK/home5" "$FAKECURL:$NOGL_PATH" GITLEAKS_INSTALL_DIR="$INST"
+if mismatch_ok "$INST"; then
   pass "5 setup rejects checksum mismatch, installs nothing, cleans temp"
 else fail "5 setup checksum mismatch (rc=$RC)"; show "$OUT"; fi
+
+# 5b) the old test-only override is gone: a matching env hash must not help
+new_repo
+INST="$WORK/install5b"
+BOGUS_SHA=$(printf 'not a real gitleaks archive\n' | { sha256sum 2>/dev/null || shasum -a 256; } | cut -d' ' -f1)
+run_setup 5b "$WORK/home5b" "$FAKECURL:$NOGL_PATH" GITLEAKS_INSTALL_DIR="$INST" \
+  GITLEAKS_EXPECTED_SHA256="$BOGUS_SHA"
+if mismatch_ok "$INST"; then
+  pass "5b GITLEAKS_EXPECTED_SHA256 cannot override the pinned checksum"
+else fail "5b checksum override still honoured (rc=$RC)"; show "$OUT"; fi
 
 # 6) SKIP_GITLEAKS_INSTALL=1: hooksPath set, only pre-push made executable
 new_repo
@@ -138,6 +178,42 @@ if [ "$RC" -eq 0 ] && [ "$(git -C "$R" config core.hooksPath)" = .githooks ] &&
    [ -x "$R/.githooks/pre-push" ] && [ ! -x "$R/.githooks/other" ]; then
   pass "6 SKIP_GITLEAKS_INSTALL sets hooksPath, chmods only pre-push"
 else fail "6 SKIP_GITLEAKS_INSTALL (rc=$RC)"; show "$OUT"; fi
+
+# 7-9) setup's "already installed" check picks gitleaks exactly like the hook.
+# 7) wrong version first on PATH, pinned copy in ~/.local/bin: hook blocks, so
+#    setup must NOT report "already installed" (it tries to install instead).
+new_repo; commit_file README.txt clean
+H="$WORK/home7"; mkdir -p "$H/.local/bin"; cp "$PINBIN/gitleaks" "$H/.local/bin/gitleaks"
+(HOME="$H"; export HOME; run_hook "$FAKEBIN:$NOGL_PATH"; echo "$RC" >"$WORK/rc7")
+HOOK_RC=$(cat "$WORK/rc7")
+run_setup 7 "$H" "$FAKEBIN:$FAKECURL:$NOGL_PATH"
+if [ "$HOOK_RC" -eq 1 ] && [ "$RC" -ne 0 ] && ! grep -q "already installed" "$OUT" &&
+   grep -q "checksum mismatch" "$OUT"; then
+  pass "7 wrong version on PATH: hook blocks and setup does not claim installed"
+else fail "7 selection parity, wrong PATH version (hook rc=$HOOK_RC, setup rc=$RC)"; show "$OUT"; fi
+
+# 8) pinned copy only in ~/.local/bin (not on PATH): hook uses it, setup agrees.
+new_repo; commit_file README.txt clean
+H="$WORK/home8"; mkdir -p "$H/.local/bin"; cp "$PINBIN/gitleaks" "$H/.local/bin/gitleaks"
+(HOME="$H"; export HOME; run_hook "$NOGL_PATH"; echo "$RC" >"$WORK/rc8")
+HOOK_RC=$(cat "$WORK/rc8")
+run_setup 8 "$H" "$FAKECURL:$NOGL_PATH"
+if [ "$HOOK_RC" -eq 0 ] && [ "$RC" -eq 0 ] && [ ! -s "$CURL_LOG" ] &&
+   grep -q "already installed: $H/.local/bin/gitleaks" "$OUT"; then
+  pass "8 ~/.local/bin fallback: hook and setup select the same binary"
+else fail "8 selection parity, ~/.local/bin (hook rc=$HOOK_RC, setup rc=$RC)"; show "$OUT"; fi
+
+# 9) pinned copy only in a custom GITLEAKS_INSTALL_DIR off PATH: the hook can't
+#    find it, so setup must not treat it as installed.
+new_repo; commit_file README.txt clean
+H="$WORK/home9"; INST="$WORK/install9"; mkdir -p "$H" "$INST"; cp "$PINBIN/gitleaks" "$INST/gitleaks"
+(HOME="$H"; export HOME; run_hook "$NOGL_PATH"; echo "$RC" >"$WORK/rc9")
+HOOK_RC=$(cat "$WORK/rc9")
+run_setup 9 "$H" "$FAKECURL:$NOGL_PATH" GITLEAKS_INSTALL_DIR="$INST"
+if [ "$HOOK_RC" -eq 1 ] && [ "$RC" -ne 0 ] && ! grep -q "already installed" "$OUT" &&
+   grep -q "checksum mismatch" "$OUT" && cmp -s "$PINBIN/gitleaks" "$INST/gitleaks"; then
+  pass "9 custom install dir off PATH: hook can't find it, setup does not claim installed"
+else fail "9 selection parity, custom dir (hook rc=$HOOK_RC, setup rc=$RC)"; show "$OUT"; fi
 
 if [ "$FAILS" -ne 0 ]; then echo "$FAILS check(s) FAILED"; exit 1; fi
 echo "All checks passed."
