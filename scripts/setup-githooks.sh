@@ -5,7 +5,7 @@
 # Env:
 #   SKIP_GITLEAKS_INSTALL=1     only set core.hooksPath, install nothing
 #   GITLEAKS_INSTALL_DIR=<dir>  install dir (default: $HOME/.local/bin)
-#   GITLEAKS_EXPECTED_SHA256=<hex>  override expected archive hash (testing only)
+# The expected archive checksums are pinned below and cannot be overridden.
 set -eu
 
 GITLEAKS_VERSION=8.30.1
@@ -22,18 +22,26 @@ fi
 
 INSTALL_DIR=${GITLEAKS_INSTALL_DIR:-$HOME/.local/bin}
 
-has_pinned_version() {
-  [ -n "$1" ] && [ -x "$1" ] || return 1
-  v=$("$1" version 2>/dev/null </dev/null | head -n 1 | tr -d '[:space:]') || return 1
+# Select gitleaks EXACTLY like .githooks/pre-push does: PATH first, then
+# $HOME/.local/bin. Keep this in sync with the hook (the self-test checks parity).
+select_gitleaks() {
+  GITLEAKS=$(command -v gitleaks 2>/dev/null || true)
+  if [ -z "$GITLEAKS" ] && [ -x "$HOME/.local/bin/gitleaks" ]; then
+    GITLEAKS="$HOME/.local/bin/gitleaks"
+  fi
+}
+# Same version probe as the hook.
+hook_gitleaks_ok() {
+  select_gitleaks
+  [ -n "$GITLEAKS" ] || return 1
+  v=$("$GITLEAKS" version 2>/dev/null </dev/null | head -n 1 | tr -d '[:space:]')
   [ "${v#v}" = "$GITLEAKS_VERSION" ]
 }
 
-for candidate in "$(command -v gitleaks 2>/dev/null || true)" "$INSTALL_DIR/gitleaks"; do
-  if has_pinned_version "$candidate"; then
-    echo "gitleaks $GITLEAKS_VERSION already installed: $candidate"
-    exit 0
-  fi
-done
+if hook_gitleaks_ok; then
+  echo "gitleaks $GITLEAKS_VERSION already installed: $GITLEAKS"
+  exit 0
+fi
 
 case "$(uname -s)" in
   Darwin) os=darwin ;;
@@ -56,7 +64,7 @@ case "${os}_${arch}" in
   linux_x64)    sha=551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb ;;
   *) echo "ERROR: unsupported platform ${os}_${arch}; install gitleaks $GITLEAKS_VERSION manually." >&2; exit 1 ;;
 esac
-EXPECTED=$(printf '%s' "${GITLEAKS_EXPECTED_SHA256:-$sha}" | tr 'A-F' 'a-f')
+EXPECTED=$sha
 
 ASSET="gitleaks_${GITLEAKS_VERSION}_${os}_${arch}.tar.gz"
 URL="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${ASSET}"
@@ -100,8 +108,8 @@ cp "$TMP/x/gitleaks" "$INSTALL_DIR/.gitleaks.tmp.$$"
 mv -f "$INSTALL_DIR/.gitleaks.tmp.$$" "$INSTALL_DIR/gitleaks"
 echo "Installed gitleaks $GITLEAKS_VERSION to $INSTALL_DIR/gitleaks"
 
-case ":$PATH:" in
-  *":$INSTALL_DIR:"*) ;;
-  *) [ "$INSTALL_DIR" = "$HOME/.local/bin" ] || \
-       echo "NOTE: $INSTALL_DIR is not on PATH; add it so the pre-push hook can find gitleaks." ;;
-esac
+if ! hook_gitleaks_ok; then
+  echo "NOTE: the pre-push hook will not pick up $INSTALL_DIR/gitleaks (it uses the first" \
+       "gitleaks on PATH, else \$HOME/.local/bin/gitleaks${GITLEAKS:+; currently $GITLEAKS})." \
+       "Put $INSTALL_DIR first on PATH or remove the other copy."
+fi
