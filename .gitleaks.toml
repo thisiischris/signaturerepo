@@ -1,0 +1,23 @@
+# gitleaks config: built-in rules + project allowlist.
+# Docs: https://github.com/gitleaks/gitleaks#configuration
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Project-wide allowlist for known false positives"
+# Regexes matched against the detected secret value:
+regexes = [
+  # '''EXAMPLE_[A-Z0-9]{16}''',
+  # '''^dummy-token-for-tests$''',
+]
+# File paths (regex) to ignore entirely:
+paths = [
+  '''(^|/)package-lock\.json$''',
+  '''(^|/)yarn\.lock$''',
+  '''(^|/)pnpm-lock\.yaml$''',
+  '''(^|/)(Cargo|Gemfile|poetry|composer|Podfile)\.lock$''',
+  '''(^|/)go\.sum$''',
+  '''(^|/)\.env\.example$''',
+  # '''^test/fixtures/''',
+]

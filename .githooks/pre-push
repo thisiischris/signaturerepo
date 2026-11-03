@@ -1,0 +1,70 @@
+#!/bin/sh
+# Secret-scan pre-push hook (gitleaks). Scans only the commits being pushed.
+# Emergency bypass: SKIP_SECRET_SCAN=1 git push   (prints a warning)
+set -u
+
+ZERO=0000000000000000000000000000000000000000
+ROOT=$(git rev-parse --show-toplevel) || exit 1
+STDIN=$(cat)
+
+run_local() {
+  if [ -x "$ROOT/.githooks/pre-push.local" ]; then
+    printf '%s\n' "$STDIN" | "$ROOT/.githooks/pre-push.local" "$@" || exit $?
+  fi
+}
+
+if [ "${SKIP_SECRET_SCAN:-}" = "1" ]; then
+  echo "WARNING: SKIP_SECRET_SCAN=1 set - secret scan SKIPPED. Make sure nothing sensitive is being pushed." >&2
+  run_local "$@"; exit 0
+fi
+
+GITLEAKS=$(command -v gitleaks 2>/dev/null || true)
+[ -z "$GITLEAKS" ] && [ -x "$HOME/.local/bin/gitleaks" ] && GITLEAKS="$HOME/.local/bin/gitleaks"
+if [ -z "$GITLEAKS" ]; then
+  cat >&2 <<'MSG'
+ERROR: gitleaks not found; push blocked by secret-scan hook.
+Install it (https://github.com/gitleaks/gitleaks#installing):
+  macOS:  brew install gitleaks
+  Linux:  download a release binary into ~/.local/bin (or a dir on PATH)
+  Go:     go install github.com/zricethezav/gitleaks/v8@latest
+Emergency bypass (not recommended): SKIP_SECRET_SCAN=1 git push
+MSG
+  exit 1
+fi
+
+CONFIG=""
+[ -f "$ROOT/.gitleaks.toml" ] && CONFIG="--config=$ROOT/.gitleaks.toml"
+
+FAILED=0
+# Each line: <local ref> <local sha> <remote ref> <remote sha>
+while read -r lref lsha rref rsha; do
+  [ -z "${lsha:-}" ] && continue
+  [ "$lsha" = "$ZERO" ] && continue            # branch/tag delete: nothing to scan
+  if [ "$rsha" = "$ZERO" ] || ! git cat-file -e "$rsha^{commit}" 2>/dev/null; then
+    range="$lsha --not --remotes"               # new ref (or unknown remote sha)
+  else
+    range="$rsha..$lsha"
+  fi
+  [ -z "$(git rev-list -n 1 $range)" ] && continue   # no new commits
+  echo "secret-scan: scanning $lref -> $rref" >&2
+  # shellcheck disable=SC2086
+  if ! "$GITLEAKS" git $CONFIG --redact --verbose --no-banner --log-opts="$range" "$ROOT" >&2; then
+    FAILED=1
+  fi
+done <<EOS
+$STDIN
+EOS
+
+if [ "$FAILED" -ne 0 ]; then
+  cat >&2 <<'MSG'
+
+PUSH BLOCKED: gitleaks reported possible secrets (values redacted above).
+- Real secret? Remove it from history (amend/rebase) AND rotate it.
+- False positive? Add an allowlist entry in .gitleaks.toml, or add a
+  `gitleaks:allow` comment on that line, then re-push.
+MSG
+  exit 1
+fi
+
+run_local "$@"
+exit 0
