@@ -1,0 +1,78 @@
+#!/bin/sh
+# Secret-scan pre-push hook (gitleaks, pinned version). Scans only the commits
+# being pushed; secret values are always redacted.
+# Emergency bypass: SKIP_SECRET_SCAN=1 git push   (prints a warning)
+set -u
+
+GITLEAKS_VERSION=8.30.1
+
+is_zero() { printf '%s\n' "$1" | grep -Eq '^0+$'; }
+
+if [ "${SKIP_SECRET_SCAN:-}" = "1" ]; then
+  echo "WARNING: SKIP_SECRET_SCAN=1 set - secret scan SKIPPED. Make sure nothing sensitive is being pushed." >&2
+  exit 0
+fi
+
+ROOT=$(git rev-parse --show-toplevel) || exit 1
+
+# Look up gitleaks: PATH first, then $HOME/.local/bin.
+GITLEAKS=$(command -v gitleaks 2>/dev/null || true)
+if [ -z "$GITLEAKS" ] && [ -x "$HOME/.local/bin/gitleaks" ]; then
+  GITLEAKS="$HOME/.local/bin/gitleaks"
+fi
+if [ -z "$GITLEAKS" ]; then
+  cat >&2 <<MSG
+ERROR: gitleaks not found; push blocked by secret-scan hook.
+Install the pinned, checksum-verified version ($GITLEAKS_VERSION) with:
+  sh scripts/setup-githooks.sh
+Emergency bypass (not recommended): SKIP_SECRET_SCAN=1 git push
+MSG
+  exit 1
+fi
+
+FOUND_VERSION=$("$GITLEAKS" version 2>/dev/null </dev/null | head -n 1 | tr -d '[:space:]')
+FOUND_VERSION=${FOUND_VERSION#v}
+if [ "$FOUND_VERSION" != "$GITLEAKS_VERSION" ]; then
+  cat >&2 <<MSG
+ERROR: wrong gitleaks version: found '${FOUND_VERSION:-unknown}' at $GITLEAKS, required $GITLEAKS_VERSION.
+Push blocked by secret-scan hook. Install the pinned, checksum-verified version with:
+  sh scripts/setup-githooks.sh
+(and make sure its install dir comes first on PATH, or remove the other copy).
+MSG
+  exit 1
+fi
+
+CONFIG=""
+[ -f "$ROOT/.gitleaks.toml" ] && CONFIG="--config=$ROOT/.gitleaks.toml"
+
+FAILED=0
+# Each stdin line: <local ref> <local sha> <remote ref> <remote sha>
+while read -r lref lsha rref rsha; do
+  [ -z "${lsha:-}" ] && continue
+  is_zero "$lsha" && continue                   # branch/tag delete: nothing to scan
+  if is_zero "${rsha:-0}" || ! git cat-file -e "$rsha^{commit}" 2>/dev/null; then
+    range="$lsha --not --remotes"               # new ref (or unknown remote sha)
+  else
+    range="$rsha..$lsha"
+  fi
+  # shellcheck disable=SC2086
+  [ -z "$(git rev-list -n 1 $range)" ] && continue   # no new commits
+  echo "secret-scan: scanning $lref -> $rref" >&2
+  # shellcheck disable=SC2086
+  if ! "$GITLEAKS" git $CONFIG --redact --verbose --no-banner \
+      --log-opts="$range" "$ROOT" </dev/null >&2; then
+    FAILED=1
+  fi
+done
+
+if [ "$FAILED" -ne 0 ]; then
+  cat >&2 <<'MSG'
+
+PUSH BLOCKED: gitleaks reported possible secrets (values redacted above).
+- Real secret? Remove it from history (amend/rebase) AND rotate it.
+- Verified false positive? Add a narrow value regex to [allowlist] regexes in
+  .gitleaks.toml (never a path), or add a `gitleaks:allow` comment on that line.
+MSG
+  exit 1
+fi
+exit 0
